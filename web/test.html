@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+</head>
+<body>
+  <button onclick="requestFn(1)">1</button>
+  <button onclick="requestFn(2)">2</button>
+  <button onclick="requestFn(3)">3</button>
+  <div id="test" style="background-color: aqua;color: red;"></div>
+
+  <script>
+    function requestFn (value) {
+      const result = baseFetch('test', {params: {key: value}, signal: true}).then((result) => {
+        console.log(result, 'result');
+
+        document.querySelector('#test').innerHTML = result.key;
+      })
+      
+    } 
+
+    const urlCache = new Map()
+
+    async function baseFetch (url, options) {
+      const {params, signal: _signal} = options;
+      let signal;
+
+      if (_signal) {
+        if (urlCache.has(url)) {
+          const _controller = urlCache.get(url);
+          _controller.abort()
+
+          urlCache.delete(url);
+        }
+
+        const controller = new AbortController();
+        signal = controller.signal;
+
+        urlCache.set(url, controller);
+      }
+
+      return fetch(`http://localhost:3000/${url}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(params),
+        signal
+      }).then(async (data) => {
+        const result = (await data.json()).data;
+
+        return result
+      }).catch((err) => {
+        
+        return Promise.reject(err)
+      })
+
+    }
+  </script>
+</body>
+</html>
